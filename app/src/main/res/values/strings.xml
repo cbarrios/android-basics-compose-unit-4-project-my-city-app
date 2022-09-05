@@ -1,3 +1,28 @@
 <resources>
     <string name="app_name">Flavors of Miami</string>
+
+    <string name="category_church">Church</string>
+    <string name="category_wedding">Wedding</string>
+    <string name="category_hotel">Hotel</string>
+
+    <string name="church_cgcc_title">Coral Gables Congregational Church</string>
+    <string name="church_cgcc_description">We invite you to be a part of our community of faith, to be blessed by God’s grace in our midst. We invite you to Coral Gables Congregational United Church of Christ (a.k.a. Gables UCC) to grow spiritually, and to find welcome at God’s table. Our vision is to be an inclusive, vibrant, alive, witnessing community of faith.</string>
+    <string name="church_gesu_title">Gesu Church</string>
+    <string name="church_gesu_description">Gesù is the oldest Catholic Church in all of South Florida, founded in April of 1896, before the City of Miami was incorporated. It is one of the few institutions that preserve the history of the city.</string>
+    <string name="church_little_flower_title">Church of Little Flower</string>
+    <string name="church_little_flower_description">A Roman Catholic church in Coral Gables, Florida founded in 1926. The church\'s domed 1951 building was constructed in Spanish Renaissance style, in keeping with the Mediterranean Revival architecture for which Coral Gables is noted.</string>
+
+    <string name="wedding_biltmore_title">The Biltmore</string>
+    <string name="wedding_biltmore_description">Uncover your dream wedding at The Biltmore Hotel. Let our talented staff and wedding team assist you every step of the way during your wedding process, whether you seek an intimate celebration or extravagant festivity.</string>
+    <string name="wedding_fairchild_title">Fairchild Garden</string>
+    <string name="wedding_fairchild_description">Imagine yourself saying “I Do” surrounded by lush gardens and romantic vistas.  That’s what you can expect when you have your event at one of Fairchild’s Miami wedding venues.  What better way for your family and friends to experience the captivating beauty and romance in Miami of this unique paradise as you and your partner set off to start forever.</string>
+    <string name="wedding_walton_title">Historic Walton House</string>
+    <string name="wedding_walton_description">Historic Walton House is a charming cottage and tropical gardens welcoming wedding parties in Homestead, Florida. Built in 1919, the building is based upon the style of an English countryside cottage and is defined by a certain old-world charm. Set amongst acres of pristine natural beauty, the site is truly distinct and a great choice for couples seeking to make an impression.</string>
+
+    <string name="hotel_biltmore_title">The Biltmore</string>
+    <string name="hotel_biltmore_description">The Biltmore Hotel is a national historic landmark located in the exclusive Coral Gables area near Miami Beach and downtown Miami. The 271-room resort resembles classic Italian, Moorish, and Spanish architectural influences spread over 150-acres of tropical landscape.</string>
+    <string name="hotel_fountain_blue_title">Fontainebleau Miami Beach</string>
+    <string name="hotel_fountain_blue_description">A spectacular blend of Golden Era glamour and modern luxury, Fontainebleau today reinvents the original vision of legendary architect Morris Lapidus – a stage where everyone plays their unique part. At Fontainebleau, striking design, contemporary art, music, fashion and technology merge into a vibrant new kind of guest experience.</string>
+    <string name="hotel_guitar_title">The Guitar Hotel</string>
+    <string name="hotel_guitar_description">The $1.5 billion expansion at Seminole Hard Rock Hotel &amp; Casino Hollywood, including the world’s first-ever Guitar Hotel, will redefine the South Florida skyline for decades to come. It will be the most iconic hospitality, gaming and entertainment destination in the United States.</string>
 </resources>
