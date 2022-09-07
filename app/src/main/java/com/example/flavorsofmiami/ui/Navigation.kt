@@ -1,5 +1,6 @@
 package com.example.flavorsofmiami.ui
 
+import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Church
 import androidx.compose.material.icons.filled.Hotel
@@ -8,7 +9,14 @@ import androidx.compose.material.icons.outlined.Church
 import androidx.compose.material.icons.outlined.Hotel
 import androidx.compose.material.icons.outlined.Loyalty
 import androidx.compose.ui.graphics.vector.ImageVector
-import com.example.flavorsofmiami.AppScreen
+import com.example.flavorsofmiami.R
+
+enum class AppScreen(@StringRes val title: Int) {
+    Church(R.string.category_church),
+    Wedding(R.string.category_wedding),
+    Hotel(R.string.category_hotel),
+    Details(R.string.recommendation_details)
+}
 
 object NavMenuItems {
 
@@ -36,3 +44,11 @@ data class MenuItem(
     val icon: ImageVector,
     val iconSelected: ImageVector
 )
+
+enum class NavigationType {
+    BOTTOM, RAIL, DRAWER
+}
+
+enum class ContentType {
+    LIST, LIST_DETAIL
+}

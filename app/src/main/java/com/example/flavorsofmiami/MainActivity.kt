@@ -4,14 +4,18 @@ import android.content.res.Configuration.UI_MODE_NIGHT_YES
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.annotation.StringRes
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
+import androidx.compose.material.CircularProgressIndicator
+import androidx.compose.material.Icon
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.NavigationRail
+import androidx.compose.material.NavigationRailItem
+import androidx.compose.material.Scaffold
+import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
@@ -23,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -43,21 +48,12 @@ class MainActivity : ComponentActivity() {
         setContent {
             FlavorsOfMiamiTheme {
                 val windowSize = calculateWindowSizeClass(activity = this)
-                MyCityApp(
-                    widthSizeClass = windowSize.widthSizeClass,
-                    onFinished = { finish() }
-                )
+                MyCityApp(widthSizeClass = windowSize.widthSizeClass)
             }
         }
     }
 }
 
-enum class AppScreen(@StringRes val title: Int) {
-    Church(R.string.category_church),
-    Wedding(R.string.category_wedding),
-    Hotel(R.string.category_hotel),
-    Details(R.string.recommendation_details)
-}
 
 // (1) App main layout: Scaffold with AppBar, AppNavigation and NavHost + (bottom/rail/drawer navigation and list/list-detail layouts)
 @Composable
@@ -65,8 +61,7 @@ fun MyCityApp(
     modifier: Modifier = Modifier,
     viewModel: RecommendationViewModel = viewModel(),
     navController: NavHostController = rememberNavController(),
-    widthSizeClass: WindowWidthSizeClass = WindowWidthSizeClass.Compact,
-    onFinished: () -> Unit = {}
+    widthSizeClass: WindowWidthSizeClass = WindowWidthSizeClass.Compact
 ) {
 
     val navigationType: NavigationType
@@ -144,7 +139,7 @@ fun MyCityApp(
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             }
             Row {
-                if (navigationType == NavigationType.RAIL) {
+                if (navigationType != NavigationType.BOTTOM) {
                     AppNavigation(
                         navigationType = navigationType,
                         navItems = NavMenuItems.menuItems,
@@ -209,10 +204,11 @@ fun MyCityApp(
                         RecommendationInfoScreen(
                             recommendation = uiState.recommendation,
                             onNavigateUp = {
-                                // If size is extended finish activity; else navigate back
-                                if (contentType == ContentType.LIST_DETAIL) {
-                                    onFinished()
-                                } else {
+                                // Because LIST_DETAIL will include the info in the main layout
+                                // Basically clicking on a card will just set that info right in the same layout
+                                // So this screen will in that case only be used to display the info, but not for navigation
+                                // Therefore, we only navigate up if our content type is LIST
+                                if (contentType == ContentType.LIST) {
                                     navController.navigateUp()
                                 }
                             }
@@ -246,6 +242,7 @@ fun AppBar(
 }
 
 // (3) Reusable app navigation component
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppNavigation(
     navigationType: NavigationType,
@@ -293,15 +290,74 @@ fun AppNavigation(
                 }
             }
         }
-        NavigationType.DRAWER -> TODO()
+        NavigationType.DRAWER -> {
+            PermanentDrawerSheet(
+                modifier = Modifier.width(240.dp),
+                drawerContainerColor = MaterialTheme.colors.surface
+            ) {
+                Spacer(Modifier.height(12.dp))
+                navItems.forEach { item ->
+                    val isSelected =
+                        currentDestination?.hierarchy?.any { it.route == item.label } == true
+                    val defaultColor =
+                        if (isSelected) MaterialTheme.colors.onPrimary else MaterialTheme.colors.onSurface
+                    NavigationDrawerItem(
+                        icon = {
+                            Icon(
+                                if (isSelected) item.iconSelected else item.icon,
+                                contentDescription = null,
+                                tint = defaultColor
+                            )
+                        },
+                        label = {
+                            Text(
+                                text = item.label,
+                                color = defaultColor
+                            )
+                        },
+                        selected = isSelected,
+                        onClick = { onMenuClicked(item) },
+                        modifier = Modifier.padding(horizontal = 12.dp),
+                        colors = NavigationDrawerItemDefaults.colors(
+                            selectedContainerColor = MaterialTheme.colors.primary,
+                            unselectedContainerColor = MaterialTheme.colors.surface
+                        )
+                    )
+                }
+            }
+        }
     }
 }
 
-@Preview
-@Preview(uiMode = UI_MODE_NIGHT_YES)
+@Preview(widthDp = 400)
+@Preview(widthDp = 400, uiMode = UI_MODE_NIGHT_YES)
 @Composable
-fun DefaultPreview() {
+fun MyCityCompactPreview() {
     FlavorsOfMiamiTheme {
-        MyCityApp()
+        MyCityApp(
+            widthSizeClass = WindowWidthSizeClass.Compact
+        )
+    }
+}
+
+@Preview(widthDp = 700)
+@Preview(widthDp = 700, uiMode = UI_MODE_NIGHT_YES)
+@Composable
+fun MyCityMediumPreview() {
+    FlavorsOfMiamiTheme {
+        MyCityApp(
+            widthSizeClass = WindowWidthSizeClass.Medium
+        )
+    }
+}
+
+@Preview(widthDp = 1000)
+@Preview(widthDp = 1000, uiMode = UI_MODE_NIGHT_YES)
+@Composable
+fun MyCityExpandedPreview() {
+    FlavorsOfMiamiTheme {
+        MyCityApp(
+            widthSizeClass = WindowWidthSizeClass.Expanded
+        )
     }
 }
