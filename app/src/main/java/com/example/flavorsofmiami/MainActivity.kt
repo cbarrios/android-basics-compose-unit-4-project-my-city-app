@@ -6,22 +6,21 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.Church
-import androidx.compose.material.icons.outlined.Hotel
-import androidx.compose.material.icons.outlined.Loyalty
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
+import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -34,17 +33,20 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.flavorsofmiami.data.model.Category
-import com.example.flavorsofmiami.ui.CategoryScreen
-import com.example.flavorsofmiami.ui.RecommendationInfoScreen
-import com.example.flavorsofmiami.ui.RecommendationViewModel
+import com.example.flavorsofmiami.ui.*
 import com.example.flavorsofmiami.ui.theme.FlavorsOfMiamiTheme
 
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             FlavorsOfMiamiTheme {
-                MyCityApp(onFinished = { finish() })
+                val windowSize = calculateWindowSizeClass(activity = this)
+                MyCityApp(
+                    widthSizeClass = windowSize.widthSizeClass,
+                    onFinished = { finish() }
+                )
             }
         }
     }
@@ -67,6 +69,29 @@ fun MyCityApp(
     onFinished: () -> Unit = {}
 ) {
 
+    val navigationType: NavigationType
+    val contentType: ContentType
+    when (widthSizeClass) {
+        WindowWidthSizeClass.Compact -> {
+            navigationType = NavigationType.BOTTOM
+            contentType = ContentType.LIST
+        }
+        WindowWidthSizeClass.Medium -> {
+            navigationType = NavigationType.RAIL
+            contentType = ContentType.LIST
+        }
+        WindowWidthSizeClass.Expanded -> {
+            navigationType = NavigationType.DRAWER
+            contentType = ContentType.LIST_DETAIL
+        }
+        else -> {
+            navigationType = NavigationType.BOTTOM
+            contentType = ContentType.LIST
+        }
+    }
+
+    val defaultUi = navigationType == NavigationType.BOTTOM && contentType == ContentType.LIST
+
     val backStackEntry by navController.currentBackStackEntryAsState()
 
     val currentScreen = AppScreen.valueOf(
@@ -83,41 +108,28 @@ fun MyCityApp(
             )
         },
         bottomBar = {
-            AppNavigation(
-                navItems = listOf(
-                    BottomMenuItem(
-                        AppScreen.Church.name,
-                        Icons.Outlined.Church,
-                        Icons.Filled.Church
-                    ),
-                    BottomMenuItem(
-                        AppScreen.Wedding.name,
-                        Icons.Outlined.Loyalty,
-                        Icons.Filled.Loyalty
-                    ),
-                    BottomMenuItem(
-                        AppScreen.Hotel.name,
-                        Icons.Outlined.Hotel,
-                        Icons.Filled.Hotel
-                    )
-                ),
-                currentDestination = backStackEntry?.destination,
-                onMenuClicked = {
-                    navController.navigate(it.label) {
-                        // Pop up to the start destination of the graph to
-                        // avoid building up a large stack of destinations
-                        // on the back stack as users select items
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            saveState = true
+            if (defaultUi) {
+                AppNavigation(
+                    navigationType = navigationType,
+                    navItems = NavMenuItems.menuItems,
+                    currentDestination = backStackEntry?.destination,
+                    onMenuClicked = {
+                        navController.navigate(it.label) {
+                            // Pop up to the start destination of the graph to
+                            // avoid building up a large stack of destinations
+                            // on the back stack as users select items
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            // Avoid multiple copies of the same destination when
+                            // re-selecting the same item
+                            launchSingleTop = true
+                            // Restore state when re-selecting a previously selected item
+                            restoreState = true
                         }
-                        // Avoid multiple copies of the same destination when
-                        // reselecting the same item
-                        launchSingleTop = true
-                        // Restore state when reselecting a previously selected item
-                        restoreState = true
                     }
-                }
-            )
+                )
+            }
         }
     ) { innerPadding ->
 
@@ -131,58 +143,81 @@ fun MyCityApp(
             if (uiState.loading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             }
-
-            NavHost(
-                navController = navController,
-                startDestination = AppScreen.Church.name
-            ) {
-                composable(route = AppScreen.Church.name) {
-                    val churches = remember(uiState.recommendations) {
-                        uiState.recommendations.filter { it.category == Category.CHURCH }
-                    }
-                    CategoryScreen(
-                        recommendations = churches,
-                        onItemClicked = {
-                            viewModel.setRecommendationInfo(it)
-                            navController.navigate(AppScreen.Details.name)
-                        }
-                    )
+            Row {
+                if (navigationType == NavigationType.RAIL) {
+                    AppNavigation(
+                        navigationType = navigationType,
+                        navItems = NavMenuItems.menuItems,
+                        currentDestination = backStackEntry?.destination,
+                        onMenuClicked = {
+                            navController.navigate(it.label) {
+                                // Pop up to the start destination of the graph to
+                                // avoid building up a large stack of destinations
+                                // on the back stack as users select items
+                                popUpTo(navController.graph.findStartDestination().id) {
+                                    saveState = true
+                                }
+                                // Avoid multiple copies of the same destination when
+                                // re-selecting the same item
+                                launchSingleTop = true
+                                // Restore state when re-selecting a previously selected item
+                                restoreState = true
+                            }
+                        })
                 }
-                composable(route = AppScreen.Wedding.name) {
-                    val weddings = remember(uiState.recommendations) {
-                        uiState.recommendations.filter { it.category == Category.WEDDING }
+                NavHost(
+                    navController = navController,
+                    startDestination = AppScreen.Church.name
+                ) {
+                    composable(route = AppScreen.Church.name) {
+                        val churches = remember(uiState.recommendations) {
+                            uiState.recommendations.filter { it.category == Category.CHURCH }
+                        }
+                        CategoryScreen(
+                            recommendations = churches,
+                            onItemClicked = {
+                                viewModel.setRecommendationInfo(it)
+                                navController.navigate(AppScreen.Details.name)
+                            }
+                        )
                     }
-                    CategoryScreen(
-                        recommendations = weddings,
-                        onItemClicked = {
-                            viewModel.setRecommendationInfo(it)
-                            navController.navigate(AppScreen.Details.name)
+                    composable(route = AppScreen.Wedding.name) {
+                        val weddings = remember(uiState.recommendations) {
+                            uiState.recommendations.filter { it.category == Category.WEDDING }
                         }
-                    )
-                }
-                composable(route = AppScreen.Hotel.name) {
-                    val hotels = remember(uiState.recommendations) {
-                        uiState.recommendations.filter { it.category == Category.HOTEL }
+                        CategoryScreen(
+                            recommendations = weddings,
+                            onItemClicked = {
+                                viewModel.setRecommendationInfo(it)
+                                navController.navigate(AppScreen.Details.name)
+                            }
+                        )
                     }
-                    CategoryScreen(
-                        recommendations = hotels,
-                        onItemClicked = {
-                            viewModel.setRecommendationInfo(it)
-                            navController.navigate(AppScreen.Details.name)
+                    composable(route = AppScreen.Hotel.name) {
+                        val hotels = remember(uiState.recommendations) {
+                            uiState.recommendations.filter { it.category == Category.HOTEL }
                         }
-                    )
-                }
-                composable(route = AppScreen.Details.name) {
-                    RecommendationInfoScreen(
-                        recommendation = uiState.recommendation,
-                        onNavigateUp = {
-                            // If we are in list-detail layout (extended window size)
-                            // TODO: Call onFinished() for list-detail layout only
-
-                            // Else if we are in details go back
-                            navController.navigateUp()
-                        }
-                    )
+                        CategoryScreen(
+                            recommendations = hotels,
+                            onItemClicked = {
+                                viewModel.setRecommendationInfo(it)
+                                navController.navigate(AppScreen.Details.name)
+                            }
+                        )
+                    }
+                    composable(route = AppScreen.Details.name) {
+                        RecommendationInfoScreen(
+                            recommendation = uiState.recommendation,
+                            onNavigateUp = {
+                                // If size is extended finish activity; else navigate back
+                                if (contentType == ContentType.LIST_DETAIL) {
+                                    onFinished()
+                                } else {
+                                    navController.navigateUp()
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -210,37 +245,57 @@ fun AppBar(
     )
 }
 
-// (3) Bottom navigation bar layout
+// (3) Reusable app navigation component
 @Composable
 fun AppNavigation(
-    navItems: List<BottomMenuItem>,
+    navigationType: NavigationType,
+    navItems: List<MenuItem>,
     currentDestination: NavDestination?,
-    modifier: Modifier = Modifier,
-    onMenuClicked: (BottomMenuItem) -> Unit
+    onMenuClicked: (MenuItem) -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    BottomNavigation(modifier = modifier) {
-        navItems.forEach { item ->
-            val isSelected = currentDestination?.hierarchy?.any { it.route == item.label } == true
-            BottomNavigationItem(
-                icon = {
-                    Icon(
-                        if (isSelected) item.iconSelected else item.icon,
-                        contentDescription = null
+    when (navigationType) {
+        NavigationType.BOTTOM -> {
+            BottomNavigation(modifier = modifier) {
+                navItems.forEach { item ->
+                    val isSelected =
+                        currentDestination?.hierarchy?.any { it.route == item.label } == true
+                    BottomNavigationItem(
+                        icon = {
+                            Icon(
+                                if (isSelected) item.iconSelected else item.icon,
+                                contentDescription = null
+                            )
+                        },
+                        label = { Text(item.label) },
+                        selected = isSelected,
+                        onClick = { onMenuClicked(item) }
                     )
-                },
-                label = { Text(item.label) },
-                selected = isSelected,
-                onClick = { onMenuClicked(item) }
-            )
+                }
+            }
         }
+        NavigationType.RAIL -> {
+            NavigationRail(modifier = modifier) {
+                navItems.forEach { item ->
+                    val isSelected =
+                        currentDestination?.hierarchy?.any { it.route == item.label } == true
+                    NavigationRailItem(
+                        icon = {
+                            Icon(
+                                if (isSelected) item.iconSelected else item.icon,
+                                contentDescription = null
+                            )
+                        },
+                        label = { Text(item.label) },
+                        selected = isSelected,
+                        onClick = { onMenuClicked(item) }
+                    )
+                }
+            }
+        }
+        NavigationType.DRAWER -> TODO()
     }
 }
-
-data class BottomMenuItem(
-    val label: String,
-    val icon: ImageVector,
-    val iconSelected: ImageVector
-)
 
 @Preview
 @Preview(uiMode = UI_MODE_NIGHT_YES)
