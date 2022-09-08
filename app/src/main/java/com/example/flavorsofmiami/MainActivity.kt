@@ -2,7 +2,6 @@ package com.example.flavorsofmiami
 
 import android.content.res.Configuration.UI_MODE_NIGHT_YES
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -21,7 +20,6 @@ import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSiz
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -96,7 +94,6 @@ fun MyCityApp(
 
     LaunchedEffect(key1 = contentType.name) {
         if (contentType == ContentType.LIST && uiState.recommendation != null && viewModel.shouldNavigateToDetails) {
-            Log.d("Main", uiState.currentScreen.name)
             if (uiState.currentScreen.name != AppScreen.Church.name) {
                 navController.navigate(uiState.currentScreen.name) {
                     popUpTo(navController.graph.findStartDestination().id) {
@@ -112,7 +109,6 @@ fun MyCityApp(
             navController.navigate(AppScreen.Details.name)
         }
         if (contentType == ContentType.LIST_DETAIL) {
-            Log.d("Main", uiState.currentScreen.name)
             val backQueue = navController.backQueue.map { it.destination.route }
             if (AppScreen.Details.name in backQueue) {
                 navController.navigateUp()
@@ -173,7 +169,7 @@ fun MyCityApp(
                         onSelectedSaved = {
                             if (navigationType == NavigationType.DRAWER) {
                                 if (selectedLabel.isEmpty()) {
-                                    viewModel.setCurrentScreen(it, true)
+                                    viewModel.setCurrentScreen(it)
                                     selectedLabel = it
                                 } else {
                                     if (selectedLabel != it) {
@@ -280,7 +276,7 @@ private fun onNavMenuClicked(
     viewModel: RecommendationViewModel
 ) {
     if (contentType == ContentType.LIST) {
-        viewModel.setCurrentScreen(menuItem.label, updateFirstRecommendation = true)
+        viewModel.setCurrentScreen(menuItem.label)
         val backQueue = navController.backQueue.map { it.destination.route }
         if (AppScreen.Details.name in backQueue) {
             navController.navigateUp()
