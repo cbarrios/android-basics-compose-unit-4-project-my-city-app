@@ -17,8 +17,12 @@ class RecommendationViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(RecommendationUiState())
     val uiState: StateFlow<RecommendationUiState> = _uiState.asStateFlow()
 
-    var isRecommendationClickedWhenExpanded = false
+    var shouldNavigateToDetails = false
         private set
+
+    fun setupShouldNavigateToDetails() {
+        shouldNavigateToDetails = true
+    }
 
     init {
         getRecommendations()
@@ -51,12 +55,22 @@ class RecommendationViewModel : ViewModel() {
     }
 
     // Call this before navigating to the recommendation info screen
-    fun setRecommendationInfo(
-        recommendation: Recommendation,
-        wasItClickedWhenExpanded: Boolean = false
-    ) {
-        if (wasItClickedWhenExpanded) isRecommendationClickedWhenExpanded = true
+    fun setRecommendationInfo(recommendation: Recommendation) {
         _uiState.update { it.copy(recommendation = recommendation) }
+    }
+
+    fun setRecommendationInfoForCurrentScreen(currentScreen: AppScreen) {
+        _uiState.update {
+            val name = currentScreen.name.lowercase()
+            val found = it.recommendation?.category?.name?.lowercase() == name
+            val firstRecommendation = when (currentScreen) {
+                AppScreen.Church -> if (found) it.recommendation else it.churches.firstOrNull()
+                AppScreen.Wedding -> if (found) it.recommendation else it.weddings.firstOrNull()
+                AppScreen.Hotel -> if (found) it.recommendation else it.hotels.firstOrNull()
+                AppScreen.Details -> it.recommendation
+            }
+            it.copy(recommendation = firstRecommendation)
+        }
     }
 
     fun setCurrentScreen(title: String, updateFirstRecommendation: Boolean = false) {

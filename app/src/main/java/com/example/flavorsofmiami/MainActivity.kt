@@ -29,6 +29,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavDestination
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -93,8 +96,24 @@ fun MyCityApp(
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(key1 = contentType.name) {
-        if (contentType == ContentType.LIST && uiState.recommendation != null && viewModel.isRecommendationClickedWhenExpanded) {
-            if (navController.previousBackStackEntry == null) navController.navigate(AppScreen.Details.name)
+        if (contentType == ContentType.LIST && uiState.recommendation != null && viewModel.shouldNavigateToDetails) {
+            if (uiState.currentScreen.name != AppScreen.Church.name) {
+                navController.navigate(uiState.currentScreen.name) {
+                    popUpTo(navController.graph.findStartDestination().id) {
+                        saveState = true
+                    }
+                    // Avoid multiple copies of the same destination when
+                    // re-selecting the same item
+                    launchSingleTop = true
+                    // Restore state when re-selecting a previously selected item
+                    restoreState = true
+                }
+            }
+            navController.navigate(AppScreen.Details.name)
+        }
+        if (contentType == ContentType.LIST_DETAIL) {
+            viewModel.setupShouldNavigateToDetails()
+            viewModel.setRecommendationInfoForCurrentScreen(uiState.currentScreen)
         }
     }
 
@@ -115,8 +134,13 @@ fun MyCityApp(
                     navigationType = navigationType,
                     navItems = NavMenuItems.menuItems,
                     currentScreen = uiState.currentScreen,
+                    currentDestination = backStackEntry?.destination,
+                    navController = navController,
                     onMenuClicked = {
                         onNavMenuClicked(contentType, it, navController, viewModel)
+                    },
+                    onSelectedSaved = {
+                        viewModel.setCurrentScreen(it)
                     }
                 )
             }
@@ -137,14 +161,20 @@ fun MyCityApp(
                         navigationType = navigationType,
                         navItems = NavMenuItems.menuItems,
                         currentScreen = uiState.currentScreen,
+                        currentDestination = backStackEntry?.destination,
+                        navController = navController,
                         onMenuClicked = {
                             onNavMenuClicked(contentType, it, navController, viewModel)
-                        })
+                        },
+                        onSelectedSaved = {
+                            viewModel.setCurrentScreen(it)
+                        }
+                    )
                 }
                 if (contentType == ContentType.LIST) {
                     NavHost(
                         navController = navController,
-                        startDestination = uiState.currentScreen.name
+                        startDestination = AppScreen.Church.name
                     ) {
                         composable(route = AppScreen.Church.name) {
                             CategoryScreen(
@@ -266,11 +296,9 @@ private fun onRecommendationClicked(
     navController: NavHostController,
     contentType: ContentType
 ) {
+    viewModel.setRecommendationInfo(recommendation)
     if (contentType == ContentType.LIST) {
-        viewModel.setRecommendationInfo(recommendation)
         navController.navigate(AppScreen.Details.name)
-    } else {
-        viewModel.setRecommendationInfo(recommendation, wasItClickedWhenExpanded = true)
     }
 }
 
@@ -281,15 +309,15 @@ private fun onNavMenuClicked(
     viewModel: RecommendationViewModel
 ) {
     if (contentType == ContentType.LIST) {
-        viewModel.setCurrentScreen(
-            menuItem.label,
-            updateFirstRecommendation = navController.previousBackStackEntry == null //if we are not in details screen
-        )
+        val backQueue = navController.backQueue.map { it.destination.route }
+        if (AppScreen.Details.name in backQueue) {
+            navController.navigateUp()
+        }
         navController.navigate(menuItem.label) {
             // Pop up to the start destination of the graph to
             // avoid building up a large stack of destinations
             // on the back stack as users select items
-            popUpTo(menuItem.label) {
+            popUpTo(navController.graph.findStartDestination().id) {
                 saveState = true
             }
             // Avoid multiple copies of the same destination when
@@ -331,14 +359,33 @@ fun AppNavigation(
     navigationType: NavigationType,
     navItems: List<MenuItem>,
     currentScreen: AppScreen,
+    currentDestination: NavDestination?,
+    navController: NavHostController,
     onMenuClicked: (MenuItem) -> Unit,
+    onSelectedSaved: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     when (navigationType) {
         NavigationType.BOTTOM -> {
             BottomNavigation(modifier = modifier) {
+                // Boolean to see if we are in our menu screens and NOT in details
+                val found =
+                    navItems.firstOrNull { item -> currentDestination?.hierarchy?.any { it.route == item.label } == true } != null
+                val backQueue = navController.backQueue.map { it.destination.route }
+                var label: String? = null
+                if (AppScreen.Details.name in backQueue) {
+                    label = backQueue.getOrNull(2)
+                    if (label == null || label == AppScreen.Details.name) label =
+                        backQueue.getOrNull(1)
+                }
                 navItems.forEach { item ->
-                    val isSelected = currentScreen.name == item.label
+                    val extraCheck = item.label == label
+                    var isSelected =
+                        currentDestination?.hierarchy?.any { it.route == item.label } == true
+                    if (!isSelected) {
+                        isSelected = if (found) false else extraCheck
+                    }
+                    if (isSelected) onSelectedSaved(item.label)
                     BottomNavigationItem(
                         icon = {
                             Icon(
@@ -355,8 +402,24 @@ fun AppNavigation(
         }
         NavigationType.RAIL -> {
             NavigationRail(modifier = modifier) {
+                // Boolean to see if we are in our menu screens and NOT in details
+                val found =
+                    navItems.firstOrNull { item -> currentDestination?.hierarchy?.any { it.route == item.label } == true } != null
+                val backQueue = navController.backQueue.map { it.destination.route }
+                var label: String? = null
+                if (AppScreen.Details.name in backQueue) {
+                    label = backQueue.getOrNull(2)
+                    if (label == null || label == AppScreen.Details.name) label =
+                        backQueue.getOrNull(1)
+                }
                 navItems.forEach { item ->
-                    val isSelected = currentScreen.name == item.label
+                    val extraCheck = item.label == label
+                    var isSelected =
+                        currentDestination?.hierarchy?.any { it.route == item.label } == true
+                    if (!isSelected) {
+                        isSelected = if (found) false else extraCheck
+                    }
+                    if (isSelected) onSelectedSaved(item.label)
                     NavigationRailItem(
                         icon = {
                             Icon(
