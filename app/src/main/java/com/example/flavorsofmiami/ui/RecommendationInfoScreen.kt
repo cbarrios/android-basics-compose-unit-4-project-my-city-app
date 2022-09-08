@@ -25,11 +25,14 @@ import com.example.flavorsofmiami.ui.theme.FlavorsOfMiamiTheme
 @Composable
 fun RecommendationInfoScreen(
     modifier: Modifier = Modifier,
+    contentType: ContentType = ContentType.LIST,
     recommendation: Recommendation? = Datasource.recommendations.first(),
     onNavigateUp: () -> Unit = {}
 ) {
-    BackHandler {
-        onNavigateUp()
+    if (contentType == ContentType.LIST) {
+        BackHandler {
+            onNavigateUp()
+        }
     }
     recommendation?.let {
         Column(
