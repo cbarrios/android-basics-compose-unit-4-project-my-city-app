@@ -20,8 +20,8 @@ class RecommendationViewModel : ViewModel() {
     var shouldNavigateToDetails = false
         private set
 
-    fun setupShouldNavigateToDetails() {
-        shouldNavigateToDetails = true
+    fun setupShouldNavigateToDetails(value: Boolean) {
+        shouldNavigateToDetails = value
     }
 
     init {
