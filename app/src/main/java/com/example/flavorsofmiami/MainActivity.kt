@@ -2,6 +2,7 @@ package com.example.flavorsofmiami
 
 import android.content.res.Configuration.UI_MODE_NIGHT_YES
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -19,10 +20,8 @@ import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -97,6 +96,7 @@ fun MyCityApp(
 
     LaunchedEffect(key1 = contentType.name) {
         if (contentType == ContentType.LIST && uiState.recommendation != null && viewModel.shouldNavigateToDetails) {
+            Log.d("Main", uiState.currentScreen.name)
             if (uiState.currentScreen.name != AppScreen.Church.name) {
                 navController.navigate(uiState.currentScreen.name) {
                     popUpTo(navController.graph.findStartDestination().id) {
@@ -112,6 +112,11 @@ fun MyCityApp(
             navController.navigate(AppScreen.Details.name)
         }
         if (contentType == ContentType.LIST_DETAIL) {
+            Log.d("Main", uiState.currentScreen.name)
+            val backQueue = navController.backQueue.map { it.destination.route }
+            if (AppScreen.Details.name in backQueue) {
+                navController.navigateUp()
+            }
             viewModel.setupShouldNavigateToDetails()
             viewModel.setRecommendationInfoForCurrentScreen(uiState.currentScreen)
         }
@@ -133,7 +138,6 @@ fun MyCityApp(
                 AppNavigation(
                     navigationType = navigationType,
                     navItems = NavMenuItems.menuItems,
-                    currentScreen = uiState.currentScreen,
                     currentDestination = backStackEntry?.destination,
                     navController = navController,
                     onMenuClicked = {
@@ -156,129 +160,96 @@ fun MyCityApp(
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             }
             Row {
+                var selectedLabel by remember { mutableStateOf("") }
                 if (navigationType != NavigationType.BOTTOM) {
                     AppNavigation(
                         navigationType = navigationType,
                         navItems = NavMenuItems.menuItems,
-                        currentScreen = uiState.currentScreen,
                         currentDestination = backStackEntry?.destination,
                         navController = navController,
                         onMenuClicked = {
                             onNavMenuClicked(contentType, it, navController, viewModel)
                         },
                         onSelectedSaved = {
-                            viewModel.setCurrentScreen(it)
+                            if (navigationType == NavigationType.DRAWER) {
+                                if (selectedLabel.isEmpty()) {
+                                    viewModel.setCurrentScreen(it, true)
+                                    selectedLabel = it
+                                } else {
+                                    if (selectedLabel != it) {
+                                        viewModel.setCurrentScreen(it, true)
+                                        selectedLabel = it
+                                    }
+                                }
+                            } else {
+                                viewModel.setCurrentScreen(it)
+                            }
                         }
                     )
                 }
-                if (contentType == ContentType.LIST) {
-                    NavHost(
-                        navController = navController,
-                        startDestination = AppScreen.Church.name
-                    ) {
-                        composable(route = AppScreen.Church.name) {
-                            CategoryScreen(
-                                recommendations = uiState.churches,
-                                onItemClicked = {
-                                    onRecommendationClicked(
-                                        it,
-                                        viewModel,
-                                        navController,
-                                        contentType
-                                    )
+
+                NavHost(
+                    modifier = Modifier.weight(1f),
+                    navController = navController,
+                    startDestination = AppScreen.Church.name
+                ) {
+                    composable(route = AppScreen.Church.name) {
+                        CategoryScreen(
+                            recommendations = uiState.churches,
+                            onItemClicked = {
+                                onRecommendationClicked(
+                                    it,
+                                    viewModel,
+                                    navController,
+                                    contentType
+                                )
+                            }
+                        )
+                    }
+                    composable(route = AppScreen.Wedding.name) {
+                        CategoryScreen(
+                            recommendations = uiState.weddings,
+                            onItemClicked = {
+                                onRecommendationClicked(
+                                    it,
+                                    viewModel,
+                                    navController,
+                                    contentType
+                                )
+                            }
+                        )
+                    }
+                    composable(route = AppScreen.Hotel.name) {
+                        CategoryScreen(
+                            recommendations = uiState.hotels,
+                            onItemClicked = {
+                                onRecommendationClicked(
+                                    it,
+                                    viewModel,
+                                    navController,
+                                    contentType
+                                )
+                            }
+                        )
+                    }
+                    composable(route = AppScreen.Details.name) {
+                        RecommendationInfoScreen(
+                            contentType = contentType,
+                            recommendation = uiState.recommendation,
+                            onNavigateUp = {
+                                // Because LIST_DETAIL will include the info in the main layout
+                                // Basically clicking on a card will just set that info right in the same layout
+                                // So this screen will in that case only be used to display the info, but not for navigation
+                                // Therefore, we only navigate up if our content type is LIST
+                                if (contentType == ContentType.LIST) {
+                                    navController.navigateUp()
                                 }
-                            )
-                        }
-                        composable(route = AppScreen.Wedding.name) {
-                            CategoryScreen(
-                                recommendations = uiState.weddings,
-                                onItemClicked = {
-                                    onRecommendationClicked(
-                                        it,
-                                        viewModel,
-                                        navController,
-                                        contentType
-                                    )
-                                }
-                            )
-                        }
-                        composable(route = AppScreen.Hotel.name) {
-                            CategoryScreen(
-                                recommendations = uiState.hotels,
-                                onItemClicked = {
-                                    onRecommendationClicked(
-                                        it,
-                                        viewModel,
-                                        navController,
-                                        contentType
-                                    )
-                                }
-                            )
-                        }
-                        composable(route = AppScreen.Details.name) {
-                            RecommendationInfoScreen(
-                                contentType = contentType,
-                                recommendation = uiState.recommendation,
-                                onNavigateUp = {
-                                    // Because LIST_DETAIL will include the info in the main layout
-                                    // Basically clicking on a card will just set that info right in the same layout
-                                    // So this screen will in that case only be used to display the info, but not for navigation
-                                    // Therefore, we only navigate up if our content type is LIST
-                                    if (contentType == ContentType.LIST) {
-                                        navController.navigateUp()
-                                    }
-                                }
-                            )
-                        }
+                            }
+                        )
                     }
                 }
 
                 if (contentType == ContentType.LIST_DETAIL) {
-                    when (uiState.currentScreen) {
-                        AppScreen.Church -> {
-                            CategoryScreen(
-                                modifier = Modifier.weight(1f),
-                                recommendations = uiState.churches,
-                                onItemClicked = {
-                                    onRecommendationClicked(
-                                        it,
-                                        viewModel,
-                                        navController,
-                                        contentType
-                                    )
-                                }
-                            )
-                        }
-                        AppScreen.Wedding -> {
-                            CategoryScreen(
-                                modifier = Modifier.weight(1f),
-                                recommendations = uiState.weddings,
-                                onItemClicked = {
-                                    onRecommendationClicked(
-                                        it,
-                                        viewModel,
-                                        navController,
-                                        contentType
-                                    )
-                                }
-                            )
-                        }
-                        AppScreen.Hotel -> {
-                            CategoryScreen(
-                                modifier = Modifier.weight(1f),
-                                recommendations = uiState.hotels,
-                                onItemClicked = {
-                                    onRecommendationClicked(
-                                        it,
-                                        viewModel,
-                                        navController,
-                                        contentType
-                                    )
-                                }
-                            )
-                        }
-                        else -> Unit
-                    }
                     RecommendationInfoScreen(
                         modifier = Modifier.weight(1f),
                         contentType = contentType,
@@ -309,6 +280,7 @@ private fun onNavMenuClicked(
     viewModel: RecommendationViewModel
 ) {
     if (contentType == ContentType.LIST) {
+        viewModel.setCurrentScreen(menuItem.label, updateFirstRecommendation = true)
         val backQueue = navController.backQueue.map { it.destination.route }
         if (AppScreen.Details.name in backQueue) {
             navController.navigateUp()
@@ -328,6 +300,19 @@ private fun onNavMenuClicked(
         }
     } else {
         viewModel.setCurrentScreen(menuItem.label, updateFirstRecommendation = true)
+        navController.navigate(menuItem.label) {
+            // Pop up to the start destination of the graph to
+            // avoid building up a large stack of destinations
+            // on the back stack as users select items
+            popUpTo(navController.graph.findStartDestination().id) {
+                saveState = true
+            }
+            // Avoid multiple copies of the same destination when
+            // re-selecting the same item
+            launchSingleTop = true
+            // Restore state when re-selecting a previously selected item
+            restoreState = true
+        }
     }
 }
 
@@ -358,7 +343,6 @@ fun AppBar(
 fun AppNavigation(
     navigationType: NavigationType,
     navItems: List<MenuItem>,
-    currentScreen: AppScreen,
     currentDestination: NavDestination?,
     navController: NavHostController,
     onMenuClicked: (MenuItem) -> Unit,
@@ -441,7 +425,9 @@ fun AppNavigation(
             ) {
                 Spacer(Modifier.height(12.dp))
                 navItems.forEach { item ->
-                    val isSelected = currentScreen.name == item.label
+                    val isSelected =
+                        currentDestination?.hierarchy?.any { it.route == item.label } == true
+                    if (isSelected) onSelectedSaved(item.label)
                     val defaultColor =
                         if (isSelected) MaterialTheme.colors.onPrimary else MaterialTheme.colors.onSurface
                     NavigationDrawerItem(
