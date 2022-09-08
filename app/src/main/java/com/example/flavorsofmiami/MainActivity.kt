@@ -92,9 +92,9 @@ fun MyCityApp(
 
     val uiState by viewModel.uiState.collectAsState()
 
-    LaunchedEffect(key1 = contentType) {
-        if (contentType == ContentType.LIST && uiState.recommendation != null && viewModel.isRecommendationClicked) {
-            navController.navigate(AppScreen.Details.name)
+    LaunchedEffect(key1 = contentType.name) {
+        if (contentType == ContentType.LIST && uiState.recommendation != null && viewModel.isRecommendationClickedWhenExpanded) {
+            if (navController.previousBackStackEntry == null) navController.navigate(AppScreen.Details.name)
         }
     }
 
@@ -266,9 +266,11 @@ private fun onRecommendationClicked(
     navController: NavHostController,
     contentType: ContentType
 ) {
-    viewModel.setRecommendationInfo(recommendation)
     if (contentType == ContentType.LIST) {
+        viewModel.setRecommendationInfo(recommendation)
         navController.navigate(AppScreen.Details.name)
+    } else {
+        viewModel.setRecommendationInfo(recommendation, wasItClickedWhenExpanded = true)
     }
 }
 

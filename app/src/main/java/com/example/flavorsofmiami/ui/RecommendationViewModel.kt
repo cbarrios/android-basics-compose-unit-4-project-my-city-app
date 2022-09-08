@@ -17,7 +17,7 @@ class RecommendationViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(RecommendationUiState())
     val uiState: StateFlow<RecommendationUiState> = _uiState.asStateFlow()
 
-    var isRecommendationClicked = false
+    var isRecommendationClickedWhenExpanded = false
         private set
 
     init {
@@ -27,7 +27,7 @@ class RecommendationViewModel : ViewModel() {
     private fun getRecommendations() {
         viewModelScope.launch {
             _uiState.update { it.copy(loading = true) }
-            delay(5000)
+            delay(2000)
             _uiState.update { uiState ->
                 val recommendations = Datasource.recommendations
                 val churches = recommendations.filter { it.category == Category.CHURCH }
@@ -51,8 +51,11 @@ class RecommendationViewModel : ViewModel() {
     }
 
     // Call this before navigating to the recommendation info screen
-    fun setRecommendationInfo(recommendation: Recommendation) {
-        isRecommendationClicked = true
+    fun setRecommendationInfo(
+        recommendation: Recommendation,
+        wasItClickedWhenExpanded: Boolean = false
+    ) {
+        if (wasItClickedWhenExpanded) isRecommendationClickedWhenExpanded = true
         _uiState.update { it.copy(recommendation = recommendation) }
     }
 
