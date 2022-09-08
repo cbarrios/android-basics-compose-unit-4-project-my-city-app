@@ -106,7 +106,10 @@ fun MyCityApp(
                     restoreState = true
                 }
             }
-            navController.navigate(AppScreen.Details.name)
+            val backQueue = navController.backQueue.map { it.destination.route }
+            if (AppScreen.Details.name !in backQueue) {
+                navController.navigate(AppScreen.Details.name)
+            }
         }
         if (contentType == ContentType.LIST_DETAIL) {
             val backQueue = navController.backQueue.map { it.destination.route }
